@@ -6,7 +6,6 @@ import os
 import shutil
 import json
 import urllib.request
-import platform as plat
 import threading
 from pathlib import Path
 
@@ -21,7 +20,7 @@ REQUEST_TIMEOUT = 30
 
 
 def get_binary_name() -> str:
-    return "wren-lsp.exe" if plat.system().lower() == "windows" else "wren-lsp"
+    return "wren-lsp.exe" if sublime.platform() == "windows" else "wren-lsp"
 
 
 def get_storage_path() -> Path:
@@ -49,23 +48,15 @@ def save_installed_version(version: str) -> None:
 
 
 def get_platform_asset() -> Optional[str]:
-    system = plat.system().lower()
-    machine = plat.machine().lower()
     platform_map = {
-        ("linux", "x86_64"): "wren-lsp-linux-x86_64",
-        ("linux", "amd64"): "wren-lsp-linux-x86_64",
-        ("linux", "aarch64"): "wren-lsp-linux-aarch64",
+        ("linux", "x64"): "wren-lsp-linux-x86_64",
         ("linux", "arm64"): "wren-lsp-linux-aarch64",
-        ("darwin", "x86_64"): "wren-lsp-macos-x86_64",
-        ("darwin", "amd64"): "wren-lsp-macos-x86_64",
-        ("darwin", "aarch64"): "wren-lsp-macos-aarch64",
-        ("darwin", "arm64"): "wren-lsp-macos-aarch64",
-        ("windows", "x86_64"): "wren-lsp-windows-x86_64.exe",
-        ("windows", "amd64"): "wren-lsp-windows-x86_64.exe",
-        ("windows", "aarch64"): "wren-lsp-windows-aarch64.exe",
+        ("osx", "x64"): "wren-lsp-macos-x86_64",
+        ("osx", "arm64"): "wren-lsp-macos-aarch64",
+        ("windows", "x64"): "wren-lsp-windows-x86_64.exe",
         ("windows", "arm64"): "wren-lsp-windows-aarch64.exe",
     }
-    return platform_map.get((system, machine))
+    return platform_map.get((sublime.platform(), sublime.arch()))
 
 
 def fetch_latest_release() -> dict:
@@ -89,7 +80,7 @@ def download_binary(download_url: str, binary_path: Path) -> None:
     if binary_path.exists():
         binary_path.unlink()
     temp_path.rename(binary_path)
-    if plat.system().lower() != 'windows':
+    if sublime.platform() != 'windows':
         binary_path.chmod(0o755)
 
 
@@ -123,7 +114,7 @@ class WrenLsp(AbstractPlugin):
     def install_or_update(cls) -> None:
         asset_name = get_platform_asset()
         if not asset_name:
-            raise Exception(f"Unsupported platform: {plat.system()}-{plat.machine()}")
+            raise Exception(f"Unsupported platform: {sublime.platform()}-{sublime.arch()}")
 
         release = fetch_latest_release()
         version = release.get('tag_name') or "unknown"
@@ -137,7 +128,7 @@ class WrenLsp(AbstractPlugin):
                 break
 
         if not download_url:
-            raise Exception(f"No binary for platform: {plat.system()}-{plat.machine()}")
+            raise Exception(f"No binary for platform: {sublime.platform()}-{sublime.arch()}")
 
         download_binary(download_url, get_binary_path())
         save_installed_version(version)
